@@ -16,6 +16,7 @@ class RubyFps
     screen_height = 40
     screen_buffer = Array.new(screen_width * screen_height)
     cached_screen_buffer = nil
+    fps = 30.0
 
     # textures
     wall_texture = "#"
@@ -25,44 +26,34 @@ class RubyFps
     darker_shade = "░"
     sky_map = Array.new(screen_width * screen_height) { |i|
       c = ((rand(0..100) == 1) ? "·" : " ")
-      on_black(gray(c))
+      on_black(white(c))
     }
 
     # player
-    player_x = 8.0
-    player_y = 8.0
-    player_angle = 10
+    player_x = 2.0
+    player_y = 2.0
+    player_angle = 0
     field_of_view = 3.14159 / 4.0
 
     map = []
-    map << "################"
+    map << "###############Y"
     map << "#..............#"
     map << "#..............#"
+    map << "#.....#........#"
+    map << "#.....#........#"
+    map << "#.....#........#"
+    map << "#.....#........#"
+    map << "#.....#........#"
+    map << "#######........#"
     map << "#..............#"
     map << "#..............#"
+    map << "#...#..........#"
+    map << "#...#..........#"
+    map << "#...#..........#"
+    map << "#...############"
     map << "#..............#"
     map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "#..............#"
-    map << "################"
+    map << "###############Y"
     map_height = map.size
     map_width = map.first.size
     max_depth = 16
@@ -85,9 +76,11 @@ class RubyFps
 
       case key
       when "a"
-        player_angle -= 2.0 * elapsed_time
+        player_angle -= (2.0 * elapsed_time)
+        player_angle %= 2 * Math::PI
       when "d"
-        player_angle += 2.0 * elapsed_time
+        player_angle += (2.0 * elapsed_time)
+        player_angle %= 2 * Math::PI
       when "w"
         player_x += Math.sin(player_angle) * 5.0 * elapsed_time
         player_y += Math.cos(player_angle) * 5.0 * elapsed_time
@@ -105,6 +98,7 @@ class RubyFps
 
         eye_x = Math.sin(ray_angle)
         eye_y = Math.cos(ray_angle)
+
         hit_wall = false
         until hit_wall || distance_to_wall >= max_depth
           distance_to_wall += 0.1
@@ -161,6 +155,38 @@ class RubyFps
         end
       end
 
+      # render minimap
+      (0...map_width).each do |x|
+        (0...map_height).each do |y|
+          screen_buffer[y * screen_width + x] = white(on_black(map[y * map_width + x]))
+        end
+      end
+
+      # Convert angle to degrees if it's in radians
+      angle = player_angle * 180 / Math::PI
+
+      # Determine the direction based on the angle
+      player_char = case angle
+      when 0...22.5, 337.5..360
+        "▼"
+      when 22.5...67.5
+        "◢"
+      when 67.5...112.5
+        "▶"
+      when 112.5...157.5
+        "◥"
+      when 157.5...202.5
+        "▲"
+      when 202.5...247.5
+        "◤"
+      when 247.5...292.5
+        "◀"
+      when 292.5...337.5
+        "◣"
+      end
+
+      screen_buffer[(player_y.to_i * screen_width + player_x.to_i)] = red(on_black(player_char))
+
       # avoid rendering if nothing changed
       if screen_buffer != cached_screen_buffer
         IO.console.cursor = [0, 0]
@@ -169,19 +195,17 @@ class RubyFps
       else
         IO.console.cursor = [screen_height, 0]
       end
+      sleep_time = (1 / fps) - elapsed_time
+      sleep(sleep_time) if sleep_time > 0
       IO.console.puts "FPS: #{1.0 / elapsed_time}"
-      IO.console.puts "X: #{player_x}, Y: #{player_y}, Angle: #{player_angle}"
+      IO.console.puts "X: #{player_x} | Y: #{player_y} | Angle: #{player_angle}"
     end
   ensure
     system("tput cnorm") # show cursor
   end
 
-  def gray(string)
+  def white(string)
     "\e[37m#{string}\e[0m"
-  end
-
-  def dark_gray(string)
-    "\e[90m#{string}\e[0m"
   end
 
   def black(string)
@@ -198,9 +222,5 @@ class RubyFps
 
   def on_dark_gray(string)
     "\e[100m#{string}\e[0m"
-  end
-
-  def on_white(string)
-    "\e[107m#{string}\e[0m"
   end
 end
