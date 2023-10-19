@@ -13,10 +13,10 @@ class RubyFps
 
     # textures
     wall_texture = "#"
-    wall_light_shade = "█"
-    wall_medium_shade = "▓"
-    wall_dark_shade = "▒"
-    wall_darker_shade = "░"
+    light_shade = "█"
+    medium_shade = "▓"
+    dark_shade = "▒"
+    darker_shade = "░"
     ceiling_texture = " "
 
     # screen
@@ -68,9 +68,9 @@ class RubyFps
 
       case key
       when "a"
-        player_angle -= 10.0 * elapsed_time
+        player_angle -= 2.0 * elapsed_time
       when "d"
-        player_angle += 10.0 * elapsed_time
+        player_angle += 2.0 * elapsed_time
       when "w"
         player_x += Math.sin(player_angle) * 5.0 * elapsed_time
         player_y += Math.cos(player_angle) * 5.0 * elapsed_time
@@ -106,14 +106,14 @@ class RubyFps
 
         ceiling = (screen_height / 2.0) - screen_height / distance_to_wall
         floor = screen_height - ceiling
-        wall_shade = if distance_to_wall <= max_depth / 4.0
-          wall_light_shade
+        shade = if distance_to_wall <= max_depth / 4.0
+          light_shade
         elsif distance_to_wall < max_depth / 3.0
-          wall_medium_shade
+          medium_shade
         elsif distance_to_wall < max_depth / 2.0
-          wall_dark_shade
+          dark_shade
         elsif distance_to_wall < max_depth
-          wall_darker_shade
+          darker_shade
         else
           " "
         end
@@ -122,23 +122,24 @@ class RubyFps
           screen_buffer[y * screen_width + x] = if y < ceiling
             ceiling_texture
           elsif y > ceiling && y <= floor
-            wall_shade
+            red(on_black(shade))
           else
             # floor shade based on distance
             b = 1.0 - ((y - screen_height / 2.0) / (screen_height / 2.0))
 
-            if b < 0.25
-              "#"
+            shade = if b < 0.25
+              darker_shade
             elsif b < 0.5
-              "x"
+              dark_shade
             elsif b < 0.75
-              "."
+              medium_shade
             elsif b < 0.9
-              "-"
+              light_shade
             else
               " "
             end
 
+            black(on_dark_gray(shade))
           end
         end
       end
@@ -150,5 +151,25 @@ class RubyFps
     end
   ensure
     system("tput cnorm") # show cursor
+  end
+
+  def gray(string)
+    "\e[37m#{string}\e[0m"
+  end
+
+  def black(string)
+    "\e[30m#{string}\e[0m"
+  end
+
+  def red(string)
+    "\e[31m#{string}\e[0m"
+  end
+
+  def on_black(string)
+    "\e[40m#{string}\e[0m"
+  end
+
+  def on_dark_gray(string)
+    "\e[100m#{string}\e[0m"
   end
 end
