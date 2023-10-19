@@ -10,6 +10,7 @@ class RubyFps
   def run
     IO.console.clear_screen
     system("tput civis") # hide cursor
+    IO.console.raw!
 
     # screen
     screen_width = 120
@@ -36,7 +37,7 @@ class RubyFps
     field_of_view = 3.14159 / 4.0
 
     map = []
-    map << "###############Y"
+    map << "################"
     map << "#..............#"
     map << "#..............#"
     map << "#.....#........#"
@@ -47,13 +48,13 @@ class RubyFps
     map << "#######........#"
     map << "#..............#"
     map << "#..............#"
-    map << "#...#..........#"
-    map << "#...#..........#"
-    map << "#...#..........#"
-    map << "#...############"
+    map << "#.........#....#"
+    map << "#.........#....#"
+    map << "#.........#....#"
+    map << "#.........######"
     map << "#..............#"
     map << "#..............#"
-    map << "###############Y"
+    map << "################"
     map_height = map.size
     map_width = map.first.size
     max_depth = 16
@@ -68,8 +69,8 @@ class RubyFps
       previous_time = current_time
 
       # reads a single byte from stdin without blocking
-      key = $stdin.raw do |io|
-        io.read_nonblock(1)
+      key = begin
+        IO.console.read_nonblock(1)
       rescue IO::WaitReadable
         nil
       end
@@ -189,19 +190,24 @@ class RubyFps
 
       # avoid rendering if nothing changed
       if screen_buffer != cached_screen_buffer
-        IO.console.cursor = [0, 0]
-        IO.console.puts screen_buffer.each_slice(screen_width).map(&:join).join("\n")
+        IO.console.cooked do |io|
+          IO.console.cursor = [0, 0]
+          IO.console.puts screen_buffer.each_slice(screen_width).map(&:join).join("\n")
+        end
         cached_screen_buffer = screen_buffer.dup
       else
         IO.console.cursor = [screen_height, 0]
       end
       sleep_time = (1 / fps) - elapsed_time
       sleep(sleep_time) if sleep_time > 0
-      IO.console.puts "FPS: #{1.0 / elapsed_time}"
-      IO.console.puts "X: #{player_x} | Y: #{player_y} | Angle: #{player_angle}"
+      IO.console.cooked do |io|
+        io.puts "FPS: #{1.0 / elapsed_time}"
+        io.puts "X: #{player_x} | Y: #{player_y} | Angle: #{player_angle}"
+      end
     end
   ensure
     system("tput cnorm") # show cursor
+    IO.console.cooked!
   end
 
   def white(string)
